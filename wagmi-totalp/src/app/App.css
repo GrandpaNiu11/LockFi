@@ -1,0 +1,136 @@
+/* App.css */
+.app-container {
+    min-height: 100vh;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.header {
+    text-align: center;
+    margin-bottom: 40px;
+    color: white;
+}
+
+.title {
+    font-size: 3rem;
+    font-weight: 700;
+    margin-bottom: 20px;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+    background: linear-gradient(45deg, #fff, #e0e7ff);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.subtitle {
+    font-size: 1.2rem;
+    font-weight: 300;
+    opacity: 0.9;
+    margin-bottom: 30px;
+    max-width: 500px;
+    line-height: 1.6;
+}
+
+.connect-section {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border-radius: 20px;
+    padding: 30px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+}
+
+.connect-button-wrapper {
+    display: flex;
+    justify-content: center;
+}
+
+/* 自定义 RainbowKit 按钮样式 */
+.connect-button-wrapper :global(.connect-button) {
+    background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+    border: none;
+    border-radius: 50px;
+    padding: 15px 30px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: white;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(238, 90, 36, 0.3);
+}
+
+.connect-button-wrapper :global(.connect-button):hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(238, 90, 36, 0.4);
+}
+
+.connect-button-wrapper :global(.connect-button):active {
+    transform: translateY(0);
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+    .title {
+        font-size: 2.2rem;
+    }
+
+    .subtitle {
+        font-size: 1rem;
+        padding: 0 20px;
+    }
+
+    .connect-section {
+        padding: 20px;
+        margin: 0 20px;
+    }
+}
+
+@media (max-width: 480px) {
+    .title {
+        font-size: 1.8rem;
+    }
+
+    .app-container {
+        padding: 15px;
+    }
+}
+
+/* 动画效果 */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.header {
+    animation: fadeInUp 0.8s ease-out;
+}
+
+.connect-section {
+    animation: fadeInUp 0.8s ease-out 0.2s both;
+}
+
+/* 粒子背景效果 */
+.app-container::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background:
+            radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.1) 1px, transparent 1px),
+            radial-gradient(circle at 80% 80%, rgba(255, 255, 255, 0.1) 1px, transparent 1px);
+    background-size: 50px 50px;
+    z-index: -1;
+}
