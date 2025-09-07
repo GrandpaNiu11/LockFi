@@ -14,6 +14,7 @@ contract StakingRewards {
         uint256 amount;
         //开始质押时间
         uint256  Pledgetime;
+        uint256  claimedRewards;
     }
     mapping  (address => Pledgor) public  addrpledgor;
     uint256 public constant PRECISION = 1e18; // 18位小数精度
@@ -54,7 +55,7 @@ contract StakingRewards {
         if (lastSettlementTime ==0){
             lastSettlementTime =block.timestamp;
         }else {
-            uint256  xiaohao = calculateRewards(lastSettlementTime);
+            uint256  xiaohao = calculateRewards(lastSettlementTime,Totalpledge);
             lastSettlementTime =block.timestamp;
             tokensLocked += xiaohao;
             remainingBalance -= xiaohao;
@@ -86,7 +87,7 @@ contract StakingRewards {
         }
     }
     //添加代币
-    function addToken(uint _tokenBalance) external onlyOwner mocalculateRewards {
+    function addToken(uint _tokenBalance) external onlyOwner   mocalculateRewards {
         require(block.timestamp < endtime, "The contract has ended and cannot be added.");
         uint256 remainingTime = endtime - block.timestamp;
         if (Totalpledge ==0) {
@@ -123,10 +124,96 @@ contract StakingRewards {
 
 
 
+    //目前是一个用户只能质押一次
+    function adduser(uint256 _tokenBalance) external {
+        require(minStakeAmount<=_tokenBalance,"Stake amount too low");
+        require(addrpledgor[msg.sender].amount ==0, "You have already participated in staking.");
+
+        // 检查授权额度是否足够
+        uint256 allowance = stakingToken.allowance(msg.sender, address(this));
+        require(allowance >= _tokenBalance, "Token allowance too low");
+        // 检查发送者余额是否足够
+        uint256 balance = stakingToken.balanceOf(msg.sender);
+        require(balance >= _tokenBalance, "Insufficient token balance");
+        // 执行安全转账
+        stakingToken.safeTransferFrom(msg.sender, address(this), _tokenBalance);
+        Pledgor memory a= Pledgor ({
+            amount :_tokenBalance,
+            Pledgetime : block.timestamp,
+            claimedRewards: 0
+        });
+        // 更新用户质押信息
+        addrpledgor[msg.sender] = a;
+
+        // 更新总质押量
+        Totalpledge += _tokenBalance;
+        //更新利率值
+        updateRewardRate();
+
+    }
 
 
+    //计算用户该提走多少token
+    function calculateWithdrawableTokens() public view returns (uint256) {
+        require(addrpledgor[msg.sender].amount !=0, "You haven't staked any tokens yet. Please stake to start earning rewards.");
+        uint256  count= addrpledgor[msg.sender].amount;
+        uint256  pledgetime= addrpledgor[msg.sender].Pledgetime;
+        uint256 totalRewards= calculateRewards(pledgetime,count);
+        return totalRewards;
+    }
+    // 提取奖励函数
+    function claimRewards() public {
+        require(addrpledgor[msg.sender].amount > 0, "You haven't staked any tokens yet.");
+
+        // 计算可提取的奖励
+        uint256 withdrawableRewards = calculateWithdrawableTokens();
+        require(withdrawableRewards > 0, "No rewards to claim");
+        require(rewardsToken.balanceOf(address(this)) >= withdrawableRewards, "Insufficient reward tokens");
+
+        // 更新已领取奖励
+        addrpledgor[msg.sender].claimedRewards += withdrawableRewards;
+
+        // 发放奖励（使用 rewardsToken）
+        rewardsToken.safeTransfer(msg.sender, withdrawableRewards);
+
+    }
+    // 提取质押本金函数
+    function withdrawStake() public {
+        require(addrpledgor[msg.sender].amount > 0, "No stake to withdraw");
+
+        uint256 stakeAmount = addrpledgor[msg.sender].amount;
+
+        // 先让用户领取所有未领取的奖励
+        claimRewards();
+
+        // 更新总质押量
+        Totalpledge -= stakeAmount;
+
+        // 清除用户质押信息
+        delete addrpledgor[msg.sender];
+
+        // 返还质押代币（使用 stakingToken）
+        stakingToken.safeTransfer(msg.sender, stakeAmount);
+
+
+    }
+
+
+    // 内部函数：更新奖励速率
+    function updateRewardRate() internal  mocalculateRewards{
+        if (Totalpledge > 0 && endtime > block.timestamp) {
+            uint256 remainingTime = endtime - block.timestamp;
+            rate = (remainingBalance * PRECISION) / remainingTime / Totalpledge;
+
+            // 记录当前时间点的速率
+            ratetime.push(block.timestamp);
+            rateMap[block.timestamp] = rate;
+        }else {
+            rate =0;
+        }
+    }
     // 计算从开始时间到当前时间的总奖励
-    function calculateRewards(uint256 startTime) public view returns (uint256) {
+    function calculateRewards(uint256 startTime,uint256 _Totalpledge) public view returns (uint256) {
         require(startTime <= block.timestamp, "Start time must be in the past");
         require(ratetime.length > 0, "No rate data available");
 
@@ -148,7 +235,7 @@ contract StakingRewards {
 
             if (effectiveEnd > effectiveStart) {
                 uint256 intervalDuration = effectiveEnd - effectiveStart;
-                totalRewards += intervalRate * intervalDuration * Totalpledge;
+                totalRewards += intervalRate * intervalDuration * _Totalpledge;
             }
         }
 
@@ -157,7 +244,7 @@ contract StakingRewards {
         if (currentTime > lastTimePoint) {
             uint256 lastRate = rateMap[lastTimePoint];
             uint256 lastDuration = currentTime - (startTime > lastTimePoint ? startTime : lastTimePoint);
-            totalRewards += lastRate * lastDuration * Totalpledge;
+            totalRewards += lastRate * lastDuration * _Totalpledge;
         }
         totalRewards = totalRewards / PRECISION;
 
