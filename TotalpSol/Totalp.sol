@@ -90,6 +90,7 @@ contract StakingRewards {
     function addToken(uint _tokenBalance) external onlyOwner   mocalculateRewards {
         require(block.timestamp < endtime, "The contract has ended and cannot be added.");
         uint256 remainingTime = endtime - block.timestamp;
+        // 计算可分配奖励（剩余余额减去已锁定奖励）
         if (Totalpledge ==0) {
             rate=0;
         }else if (remainingBalance <= 0){
@@ -159,7 +160,8 @@ contract StakingRewards {
         uint256  count= addrpledgor[msg.sender].amount;
         uint256  pledgetime= addrpledgor[msg.sender].Pledgetime;
         uint256 totalRewards= calculateRewards(pledgetime,count);
-        return totalRewards;
+        // 计算用户可提取的奖励
+        return totalRewards - addrpledgor[msg.sender].claimedRewards;
     }
     // 提取奖励函数
     function claimRewards() public {
